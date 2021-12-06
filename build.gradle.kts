@@ -28,7 +28,7 @@ tasks.withType<KotlinCompile> {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("org.jetbrains.tbec.MainKt")
 }
 
 distributions {

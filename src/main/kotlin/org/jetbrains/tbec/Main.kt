@@ -1,3 +1,5 @@
+package org.jetbrains.tbec
+
 import net.lingala.zip4j.ZipFile
 import org.apache.commons.codec.digest.DigestUtils
 import java.nio.file.Files
