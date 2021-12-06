@@ -11,7 +11,6 @@ import kotlin.streams.toList
 import kotlin.system.exitProcess
 
 fun main() {
-    val version = "1.6.20-dev-491"
     val path1 = "kotlin-compiler-1.6.20-dev-491-cache.zip"
     val path2 = "kotlin-compiler-1.6.20-dev-491-clean.zip"
     val algo = "md5"
@@ -33,7 +32,7 @@ fun main() {
         if (it.startsWith(Checker.ROOT)) it else "${Checker.ROOT}/$it"
     }.toSet()
 
-    val checker = Checker(checkerExceptions, hashAlgo = algo, version = version, progress = progress)
+    val checker = Checker(checkerExceptions, hashAlgo = algo, progress = progress)
     checker.check(file1, file2)
     val errors = checker.errors
     val warnings = checker.warnings
@@ -68,7 +67,6 @@ class TempDir(private val prefix: String) {
 class Checker(
     private val exceptions: Set<String>,
     val hashAlgo: String,
-    val version: String? = null,
     val progress: (String) -> Unit = {}
 ) {
     private enum class DiffKind {
