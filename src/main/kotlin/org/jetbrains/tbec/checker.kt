@@ -2,6 +2,7 @@ package org.jetbrains.tbec
 
 import net.lingala.zip4j.ZipFile
 import org.apache.commons.codec.digest.DigestUtils
+import org.jetbrains.tbec.Checker.DiffKind.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
@@ -67,6 +68,10 @@ class Checker(
     }
 
     private fun report(kind: DiffKind, path: String, message: String? = null): Boolean {
+        if (path == ROOT && kind == TIMESTAMP) {
+            return false
+        }
+
         @Suppress("NAME_SHADOWING") val message = message ?: when (kind) {
             DiffKind.MISSING_EXIST -> "missing -> exist"
             DiffKind.EXIST_MISSING -> "exist <- missing"
