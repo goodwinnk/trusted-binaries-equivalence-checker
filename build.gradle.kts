@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "me.user"
+group = "org.jetbrains"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -29,4 +29,15 @@ tasks.withType<KotlinCompile> {
 
 application {
     mainClass.set("MainKt")
+}
+
+distributions {
+    main {
+        contents {
+            println(layout.projectDirectory.dir("licenses"))
+            from(layout.projectDirectory.dir("licenses")) {
+                into("licenses")
+            }
+        }
+    }
 }

@@ -1,3 +1,1 @@
-
-rootProject.name = "binary-eq-checker"
-
+rootProject.name = "trusted-binaries-equivalence-checker"
