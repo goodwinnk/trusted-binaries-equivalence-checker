@@ -20,6 +20,9 @@ class CheckerCommand : CliktCommandWithFile() {
                 "'<>' can be used as root, '/' should be used as path separator.\n" +
                 "Empty by default.").default("")
 
+    private val warnOnUnused: Boolean by option(
+        help = "Generate warning (instead of error) is some rule is unused, false by default").flag(default = false)
+
     private val progress: Boolean by option(help = "Print progress, false by default").flag(default = false)
     private val noWarnings: Boolean by option(help = "Show muted warnings in the output, false by default").flag(default = false)
 
@@ -38,8 +41,10 @@ class CheckerCommand : CliktCommandWithFile() {
         try {
             val checker = Checker(checkerExceptions, hashAlgo = algo, progress = progressListener)
             checker.check(left, right)
-            val errors = checker.errors
-            val warnings = checker.warnings
+
+            val reportUnused = if (checker.errors.isEmpty()) checker.unusedExceptions.map { "Unused rule: $it" } else emptyList()
+            val errors = checker.errors + (if (!warnOnUnused) reportUnused else emptyList())
+            val warnings = checker.warnings + (if (warnOnUnused) reportUnused else emptyList())
 
             if (!this.noWarnings && warnings.isNotEmpty()) {
                 println("Warnings:")

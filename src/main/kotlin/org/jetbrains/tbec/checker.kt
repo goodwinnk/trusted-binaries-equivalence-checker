@@ -50,15 +50,19 @@ class Checker(
 
     private val _errors: MutableList<String> = mutableListOf()
     private val _warnings: MutableList<String> = mutableListOf()
+    private val _usedExceptions: MutableSet<String> = mutableSetOf()
     private var tempDir = TempDir("eq-checker")
 
     val errors: List<String> get() = _errors
     val warnings: List<String> get() = _warnings
+    val unusedExceptions: List<String> get() = exceptions.filterNot { it in _usedExceptions }
 
     fun check(left: Path, right: Path) {
         try {
             _errors.clear()
             _warnings.clear()
+            _usedExceptions.clear()
+
             Files.createTempDirectory("tmpDirPrefix")
 
             check(left, right, ROOT)
@@ -88,6 +92,7 @@ class Checker(
             true
         } else {
             progress("WARN: $full")
+            _usedExceptions.add(path)
             _warnings.add(full)
             false
         }
