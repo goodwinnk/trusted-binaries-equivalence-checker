@@ -73,12 +73,12 @@ class Checker(
         }
 
         @Suppress("NAME_SHADOWING") val message = message ?: when (kind) {
-            DiffKind.MISSING_EXIST -> "missing -> exist"
-            DiffKind.EXIST_MISSING -> "exist <- missing"
-            DiffKind.FILE_DIR -> "file != directory"
-            DiffKind.DIR_FILE -> "directory != file"
-            DiffKind.TIMESTAMP -> "timestamps"
-            DiffKind.HASH -> "hashes"
+            MISSING_EXIST -> "missing -> exist"
+            EXIST_MISSING -> "exist <- missing"
+            FILE_DIR -> "file != directory"
+            DIR_FILE -> "directory != file"
+            TIMESTAMP -> "timestamps"
+            HASH -> "hashes"
         }
 
         val full = "$path: $message"
@@ -99,11 +99,11 @@ class Checker(
 
         if (!leftExist && !rightExist) return
         if (!leftExist) {
-            report(DiffKind.MISSING_EXIST, path)
+            report(MISSING_EXIST, path)
             return
         }
         if (!rightExist) {
-            report(DiffKind.EXIST_MISSING, path)
+            report(EXIST_MISSING, path)
             return
         }
 
@@ -112,9 +112,9 @@ class Checker(
 
         if (isLeftDirectory != isRightDirectory) {
             if (isLeftDirectory) {
-                report(DiffKind.DIR_FILE, path)
+                report(DIR_FILE, path)
             } else {
-                report(DiffKind.FILE_DIR, path)
+                report(FILE_DIR, path)
             }
             return
         }
@@ -140,7 +140,7 @@ class Checker(
             val nextPath = "$path/${leftChild.toString().replace("\\", "/")}"
 
             if (!rightChildren.contains(leftChild)) {
-                report(DiffKind.EXIST_MISSING, nextPath, "exist <- missing")
+                report(EXIST_MISSING, nextPath, "exist <- missing")
             } else {
                 check(left.resolve(leftChild), right.resolve(leftChild), nextPath)
             }
@@ -150,7 +150,7 @@ class Checker(
             val nextPath = "$path/${rightChild.toString().replace("\\", "/")}"
 
             if (!leftChildren.contains(rightChild)) {
-                report(DiffKind.MISSING_EXIST, nextPath, "missing <- exist")
+                report(MISSING_EXIST, nextPath, "missing <- exist")
             }
         }
     }
@@ -165,14 +165,14 @@ class Checker(
         val leftAttributes = Files.readAttributes(left, BasicFileAttributes::class.java)
         val rightAttributes = Files.readAttributes(right, BasicFileAttributes::class.java)
         if (leftAttributes.creationTime() != rightAttributes.creationTime()) {
-            report(DiffKind.TIMESTAMP, path, "${leftAttributes.creationTime()} != ${rightAttributes.creationTime()}")
+            report(TIMESTAMP, path, "${leftAttributes.creationTime()} != ${rightAttributes.creationTime()}")
         }
 
         val leftHash = left.hash(hashAlgo)
         val rightHash = right.hash(hashAlgo)
 
         if (leftHash != rightHash) {
-            if (report(DiffKind.HASH, path, "$leftHash != $rightHash")) {
+            if (report(HASH, path, "$leftHash != $rightHash")) {
                 return
             }
 
