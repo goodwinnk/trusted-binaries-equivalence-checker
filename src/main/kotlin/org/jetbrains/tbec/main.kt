@@ -21,7 +21,7 @@ class CheckerCommand : CliktCommandWithFile() {
                 "Empty by default.").default("")
 
     private val progress: Boolean by option(help = "Print progress, false by default").flag(default = false)
-    private val noWarnings: Boolean by option(help = "Show muted warnings in the output, true by default").flag(default = true)
+    private val noWarnings: Boolean by option(help = "Show muted warnings in the output, false by default").flag(default = false)
 
     private val left: Path by argument().path(mustExist = true)
     private val right: Path by argument().path(mustExist = true)
@@ -41,7 +41,7 @@ class CheckerCommand : CliktCommandWithFile() {
             val errors = checker.errors
             val warnings = checker.warnings
 
-            if (this.noWarnings && warnings.isNotEmpty()) {
+            if (!this.noWarnings && warnings.isNotEmpty()) {
                 println("Warnings:")
                 println(warnings.joinToString("\n") { "\t$it" })
             }
