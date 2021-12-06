@@ -14,7 +14,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-
+    implementation("com.github.ajalt.clikt:clikt:3.3.0")
     implementation("commons-codec:commons-codec:1.15")
     implementation("net.lingala.zip4j:zip4j:2.9.1")
 }

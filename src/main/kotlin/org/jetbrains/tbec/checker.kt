@@ -26,6 +26,8 @@ class TempDir(private val prefix: String) {
     }
 }
 
+class CheckerException(message: String): Exception(message)
+
 class Checker(
     private val exceptions: Set<String>,
     val hashAlgo: String,
@@ -186,12 +188,13 @@ class Checker(
     }
 }
 
-fun escapePath(path: String) = path.replace("<", "_").replace(">", "_")
-fun Path.hash(algo: String): String =
+private fun escapePath(path: String) = path.replace("<", "_").replace(">", "_")
+
+private fun Path.hash(algo: String): String =
     Files.newInputStream(this).use { fileInputStream ->
         when (algo) {
             "sha256" -> DigestUtils.sha256Hex(fileInputStream)
             "md5" -> DigestUtils.md5Hex(fileInputStream)
-            else -> exitWithError("Unknown hash algorithm '$algo' is used . md5 and sha256 are supported.")
+            else -> throw CheckerException("Unknown hash algorithm '$algo' is used . md5 and sha256 are supported.")
         }
     }
