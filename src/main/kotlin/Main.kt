@@ -69,6 +69,15 @@ class Checker(
     val version: String? = null,
     val progress: (String) -> Unit = {}
 ) {
+    private enum class DiffKind {
+        MISSING_EXIST,
+        EXIST_MISSING,
+        FILE_DIR,
+        DIR_FILE,
+        TIMESTAMP,
+        HASH
+    }
+
     companion object {
         private val zipExtension = setOf("zip", "jar")
         const val ROOT = "<>"
@@ -93,16 +102,26 @@ class Checker(
         }
     }
 
-    private fun addError(path: String, message: String) {
-        val full = "$path: $message"
-        progress("ERROR: $full")
-        _errors.add(full)
-    }
+    private fun report(kind: DiffKind, path: String, message: String? = null): Boolean {
+        @Suppress("NAME_SHADOWING") val message = message ?: when (kind) {
+            DiffKind.MISSING_EXIST -> "missing -> exist"
+            DiffKind.EXIST_MISSING -> "exist <- missing"
+            DiffKind.FILE_DIR -> "file != directory"
+            DiffKind.DIR_FILE -> "directory != file"
+            DiffKind.TIMESTAMP -> "timestamps"
+            DiffKind.HASH -> "hashes"
+        }
 
-    private fun addWarning(path: String, message: String) {
         val full = "$path: $message"
-        progress("WARN: $full")
-        _warnings.add(full)
+        return if (path !in exceptions) {
+            progress("ERROR: $full")
+            _errors.add(full)
+            true
+        } else {
+            progress("WARN: $full")
+            _warnings.add(full)
+            false
+        }
     }
 
     private fun check(left: Path, right: Path, path: String) {
@@ -111,15 +130,11 @@ class Checker(
 
         if (!leftExist && !rightExist) return
         if (!leftExist) {
-            if (path !in exceptions) {
-                addError(path,"missing -> exist")
-            }
+            report(DiffKind.MISSING_EXIST, path)
             return
         }
         if (!rightExist) {
-            if (path !in exceptions) {
-                addError(path, "exist <- missing")
-            }
+            report(DiffKind.EXIST_MISSING, path)
             return
         }
 
@@ -128,9 +143,9 @@ class Checker(
 
         if (isLeftDirectory != isRightDirectory) {
             if (isLeftDirectory) {
-                addError(path, "directory != file")
+                report(DiffKind.DIR_FILE, path)
             } else {
-                addError(path, "file != directory")
+                report(DiffKind.FILE_DIR, path)
             }
             return
         }
@@ -156,9 +171,7 @@ class Checker(
             val nextPath = "$path/${leftChild.toString().replace("\\", "/")}"
 
             if (!rightChildren.contains(leftChild)) {
-                if (nextPath !in exceptions) {
-                    addError(nextPath, "exist <- missing")
-                }
+                report(DiffKind.EXIST_MISSING, nextPath, "exist <- missing")
             } else {
                 check(left.resolve(leftChild), right.resolve(leftChild), nextPath)
             }
@@ -168,9 +181,7 @@ class Checker(
             val nextPath = "$path/${rightChild.toString().replace("\\", "/")}"
 
             if (!leftChildren.contains(rightChild)) {
-                if (nextPath !in exceptions) {
-                    addError(nextPath, "missing <- exist")
-                }
+                report(DiffKind.MISSING_EXIST, nextPath, "missing <- exist")
             }
         }
     }
@@ -185,20 +196,16 @@ class Checker(
         val leftAttributes = Files.readAttributes(left, BasicFileAttributes::class.java)
         val rightAttributes = Files.readAttributes(right, BasicFileAttributes::class.java)
         if (leftAttributes.creationTime() != rightAttributes.creationTime()) {
-            addWarning(path, "${leftAttributes.creationTime()} != ${rightAttributes.creationTime()}")
+            report(DiffKind.TIMESTAMP, path, "${leftAttributes.creationTime()} != ${rightAttributes.creationTime()}")
         }
 
         val leftHash = left.hash(hashAlgo)
         val rightHash = right.hash(hashAlgo)
 
-
         if (leftHash != rightHash) {
-            if (path !in exceptions) {
-                addError(path, "$leftHash != $rightHash")
+            if (report(DiffKind.HASH, path, "$leftHash != $rightHash")) {
                 return
             }
-
-            addWarning(path, "$leftHash != $rightHash")
 
             if (left.extension in zipExtension) {
                 val fileDirPath = Files.createDirectories(tempDir.path.resolve(escapePath(path)))
