@@ -2,7 +2,7 @@ package org.jetbrains.tbec
 
 import net.lingala.zip4j.ZipFile
 import org.apache.commons.codec.digest.DigestUtils
-import org.jetbrains.tbec.Checker.DiffKind.*
+import org.jetbrains.tbec.DiffKind.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
@@ -30,23 +30,16 @@ class TempDir(private val prefix: String) {
 class CheckerException(message: String): Exception(message)
 
 class Checker(
-    private val exceptions: Set<String>,
+    val exceptionsPatterns: List<String>,
     val hashAlgo: String,
     val progress: (String) -> Unit = {}
 ) {
-    private enum class DiffKind {
-        MISSING_EXIST,
-        EXIST_MISSING,
-        FILE_DIR,
-        DIR_FILE,
-        TIMESTAMP,
-        HASH
-    }
-
     companion object {
         private val zipExtension = setOf("zip", "jar")
         const val ROOT = "<>"
     }
+
+    private val exceptionRules = exceptionsPatterns.map { DiffExceptionRule.parseExceptionRulePattern(it) }
 
     private val _errors: MutableList<String> = mutableListOf()
     private val _warnings: MutableList<String> = mutableListOf()
@@ -55,7 +48,7 @@ class Checker(
 
     val errors: List<String> get() = _errors
     val warnings: List<String> get() = _warnings
-    val unusedExceptions: List<String> get() = exceptions.filterNot { it in _usedExceptions }
+    val unusedExceptions: List<String> get() = exceptionsPatterns.filterNot { it in _usedExceptions }
 
     fun check(left: Path, right: Path) {
         try {
@@ -69,6 +62,10 @@ class Checker(
         } finally {
             tempDir.delete()
         }
+    }
+
+    private fun findExceptionPattern(kind: DiffKind, path: String): String? {
+        return exceptionRules.find { it.match(kind, path) }?.pattern
     }
 
     private fun report(kind: DiffKind, path: String, message: String? = null): Boolean {
@@ -86,13 +83,15 @@ class Checker(
         }
 
         val full = "$path: $message"
-        return if (path !in exceptions) {
+        val exceptionRulePattern = findExceptionPattern(kind, path)
+
+        return if (exceptionRulePattern == null) {
             progress("ERROR: $full")
             _errors.add(full)
             true
         } else {
             progress("WARN: $full")
-            _usedExceptions.add(path)
+            _usedExceptions.add(exceptionRulePattern)
             _warnings.add(full)
             false
         }

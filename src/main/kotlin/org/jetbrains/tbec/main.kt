@@ -31,15 +31,10 @@ class CheckerCommand : CliktCommandWithFile() {
 
     override fun run() {
         val exceptionsList = exceptions.split(",")
-
         val progressListener: (String) -> Unit = if (progress) { message -> println(message) } else { _ -> /* do nothing */ }
 
-        val checkerExceptions = exceptionsList.map {
-            if (it.startsWith(Checker.ROOT)) it else "${Checker.ROOT}/$it"
-        }.toSet()
-
         try {
-            val checker = Checker(checkerExceptions, hashAlgo = algo, progress = progressListener)
+            val checker = Checker(exceptionsList, hashAlgo = algo, progress = progressListener)
             checker.check(left, right)
 
             val reportUnused = if (checker.errors.isEmpty()) checker.unusedExceptions.map { "Unused rule: $it" } else emptyList()
