@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "org.jetbrains"
-version = "1.0-SNAPSHOT"
+version = project.findProperty("version")?.toString() ?: "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
