@@ -17,7 +17,7 @@ class DiffExceptionRule private constructor (
             CONTAINS
         }
 
-        fun parseExceptionRulePattern(pattern: String): DiffExceptionRule {
+        fun parseExceptionRulePattern(pattern: String, replaces: Map<String, String> = emptyMap()): DiffExceptionRule {
             val kinds: Set<DiffKind>
 
             var pathPattern: String
@@ -51,6 +51,10 @@ class DiffExceptionRule private constructor (
                 true
             } else {
                 false
+            }
+
+            for ((variable, value) in replaces) {
+                pathPattern = pathPattern.replace("{$variable}", value)
             }
 
             val path = pathPattern

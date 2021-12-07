@@ -20,6 +20,12 @@ class CheckerCommand : CliktCommandWithFile() {
                 "'<>' can be used as root, '/' should be used as path separator.\n" +
                 "Empty by default.").default("")
 
+    private val replaces: String by option(
+        help = "Comma separated List of replaces in exceptions in the format 'value1=replace,value2=replace'. " +
+                "',' and '=' can be escaped with '\\'." +
+                "Empty by default."
+    ).default("")
+
     private val warnOnUnused: Boolean by option(
         help = "Generate warning (instead of error) is some rule is unused, false by default").flag(default = false)
 
@@ -34,7 +40,7 @@ class CheckerCommand : CliktCommandWithFile() {
         val progressListener: (String) -> Unit = if (progress) { message -> println(message) } else { _ -> /* do nothing */ }
 
         try {
-            val checker = Checker(exceptionsList, hashAlgo = algo, progress = progressListener)
+            val checker = Checker(exceptionsList, replaces, hashAlgo = algo, progress = progressListener)
             checker.check(left, right)
 
             val reportUnused = if (checker.errors.isEmpty()) checker.unusedExceptions.map { "Unused rule: $it" } else emptyList()

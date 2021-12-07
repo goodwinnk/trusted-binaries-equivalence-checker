@@ -27,11 +27,12 @@ class TempDir(private val prefix: String) {
     }
 }
 
-class CheckerException(message: String): Exception(message)
+class CheckerException(message: String, cause: Exception? = null): Exception(message, cause)
 
 class Checker(
-    val exceptionsPatterns: List<String>,
-    val hashAlgo: String,
+    private val exceptionsPatterns: List<String> = listOf("<T>"),
+    private val patternReplacesStr: String = "",
+    val hashAlgo: String = "md5",
     val progress: (String) -> Unit = {}
 ) {
     companion object {
@@ -39,7 +40,14 @@ class Checker(
         const val ROOT = "<>"
     }
 
-    private val exceptionRules = exceptionsPatterns.map { DiffExceptionRule.parseExceptionRulePattern(it) }
+    private val exceptionRules = run {
+        val replaces = try {
+             patternReplacesStr.parseMap()
+        } catch (ex: ParseMapException) {
+            throw CheckerException("Can't parse replaces", ex)
+        }
+        exceptionsPatterns.map { DiffExceptionRule.parseExceptionRulePattern(it, replaces) }
+    }
 
     private val _errors: MutableList<String> = mutableListOf()
     private val _warnings: MutableList<String> = mutableListOf()
