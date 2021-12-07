@@ -1,20 +1,28 @@
 package org.jetbrains.tbec
 
+import org.jetbrains.tbec.Checker.Companion.ROOT
+import org.jetbrains.tbec.DiffExceptionRule.Companion.PatternType.*
+
 class DiffExceptionRule private constructor (
     val pattern: String,
     val kinds: Set<DiffKind>, // Empty set means all kinds
     val path: String,
-    val isWildcardPath: Boolean
+    val patternType: PatternType
 ) {
     companion object {
+        enum class PatternType {
+            STRICT,
+            STARTS_WITH,
+            ENDS_WITH,
+            CONTAINS
+        }
+
         fun parseExceptionRulePattern(pattern: String): DiffExceptionRule {
             val kinds: Set<DiffKind>
-            val path: String
-            val isWildcardPath: Boolean
-            
-            val pathPattern: String
+
+            var pathPattern: String
             if (pattern.startsWith("<")) {
-                pathPattern = Checker.ROOT + pattern.substringAfterLast(">")
+                pathPattern = pattern.substringAfterLast(">")
                 val kindsStr = pattern.substringAfter("<").substringBeforeLast(">").trim()
                 kinds = if (kindsStr.isEmpty()) {
                     emptySet()
@@ -23,18 +31,41 @@ class DiffExceptionRule private constructor (
                 }
             } else {
                 kinds = emptySet()
-                pathPattern = "${Checker.ROOT}/$pattern"
+                pathPattern = pattern
             }
 
-            if (pathPattern.endsWith("**")) {
-                isWildcardPath = true
-                path = pathPattern.substringBeforeLast("**")
+            val isStartWildcard = if (pathPattern.startsWith("**")) {
+                pathPattern = pathPattern.substringAfter("**")
+                true
             } else {
-                isWildcardPath = false
-                path = pathPattern
+                pathPattern = when {
+                    pathPattern.isEmpty() -> ROOT
+                    pathPattern.startsWith("/") -> "$ROOT$pathPattern"
+                    else -> "$ROOT/$pathPattern"
+                }
+                false
+            }
+
+            val isEndWildcard = if (pathPattern.endsWith("**")) {
+                pathPattern = pathPattern.substringBeforeLast("**")
+                true
+            } else {
+                false
+            }
+
+            val path = pathPattern
+            if (path.contains("**")) {
+                throw CheckerException("There shouldn't be ** in the middle of the pattern: '$pattern'")
+            }
+
+            val patternType = when {
+                isStartWildcard && isEndWildcard -> CONTAINS
+                !isStartWildcard && isEndWildcard -> STARTS_WITH
+                isStartWildcard && !isEndWildcard -> ENDS_WITH
+                else -> STRICT
             }
             
-            return DiffExceptionRule(pattern, kinds, path, isWildcardPath)
+            return DiffExceptionRule(pattern, kinds, path, patternType)
         }
         
         private fun parseKind(kindStr: String, pattern: String): DiffKind {
@@ -52,10 +83,11 @@ class DiffExceptionRule private constructor (
 
     fun match(kind: DiffKind, path: String): Boolean {
         if (kinds.isNotEmpty() && kind !in kinds) return false
-        return if (isWildcardPath) {
-            path.startsWith(this.path)
-        } else {
-            path == this.path
+        return when (patternType) {
+            STRICT -> path == this.path
+            STARTS_WITH -> path.startsWith(this.path)
+            ENDS_WITH -> path.endsWith(this.path)
+            CONTAINS -> path.contains(this.path)
         }
     }
 
@@ -72,6 +104,6 @@ class DiffExceptionRule private constructor (
     }
 
     override fun toString(): String {
-        return "DiffExceptionRule(pattern='$pattern', kinds=$kinds, path='$path', isWildcardPath=$isWildcardPath)"
+        return "DiffExceptionRule(pattern='$pattern', kinds=$kinds, path='$path', patternType=$patternType)"
     }
 }
