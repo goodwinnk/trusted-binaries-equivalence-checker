@@ -27,7 +27,7 @@ class DiffExceptionRule private constructor (
                 pathPattern = pattern.substringAfterLast(">")
 
                 val kindAndFlakyStr = pattern.substringAfter("<").substringBeforeLast(">").trim()
-                val kindAndFlakyParts = kindAndFlakyStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                val kindAndFlakyParts = kindAndFlakyStr.split(":").map { it.trim() }.filter { it.isNotEmpty() }
                 val kindParts = kindAndFlakyParts.filter { part -> !part.uppercase().let { it == "F" || it == "FLAKY" } }
 
                 flaky = kindParts.size < kindAndFlakyParts.size

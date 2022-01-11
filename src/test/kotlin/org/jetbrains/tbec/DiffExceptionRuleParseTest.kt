@@ -17,14 +17,14 @@ internal class DiffExceptionRuleParseTest {
     @Test fun noRootContains(): Unit = check("**/dir/some**", "/dir/some", emptySet(), CONTAINS)
 
     @Test fun allShort(): Unit = check(
-        "<ME,EM,FD,F,DF,T,H>/dir/file",
+        "<ME:EM:FD:F:DF:T:H>/dir/file",
         "<>/dir/file",
         setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT,
         flaky = true
     )
 
     @Test fun allLong(): Unit = check(
-        "<MISSING_EXIST, EXIST_MISSING, FLAKY, FILE_DIR, DIR_FILE, TIMESTAMP, HASH>/dir/file",
+        "<MISSING_EXIST: EXIST_MISSING: FLAKY: FILE_DIR: DIR_FILE: TIMESTAMP: HASH>/dir/file",
         "<>/dir/file",
         setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT,
         flaky = true
