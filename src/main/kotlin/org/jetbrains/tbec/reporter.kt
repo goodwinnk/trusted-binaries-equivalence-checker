@@ -4,7 +4,7 @@ open class Reporter(
     private val exceptionsPatterns: List<String> = listOf("<T>"),
     private val patternReplacesStr: String = ""
 ) {
-    private val exceptionRules = run {
+    private val exceptionRules: List<DiffExceptionRule> = run {
         val replaces = try {
             patternReplacesStr.parseMap()
         } catch (ex: ParseMapException) {
@@ -19,7 +19,11 @@ open class Reporter(
 
     val errors: List<String> get() = ArrayList(_errors)
     val warnings: List<String> get() = ArrayList(_warnings)
-    val unusedExceptions: List<String> get() = exceptionsPatterns.filterNot { it in _usedExceptions }
+    val unusedExceptions: List<String> get() = exceptionRules.asSequence()
+        .filter { !it.flaky }
+        .filter { it.pattern !in _usedExceptions }
+        .map { it.pattern }
+        .toList()
 
     private fun findExceptionPattern(kind: DiffKind, path: String): String? {
         return exceptionRules.find { it.match(kind, path) }?.pattern

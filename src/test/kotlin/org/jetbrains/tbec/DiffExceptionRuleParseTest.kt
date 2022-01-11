@@ -17,15 +17,17 @@ internal class DiffExceptionRuleParseTest {
     @Test fun noRootContains(): Unit = check("**/dir/some**", "/dir/some", emptySet(), CONTAINS)
 
     @Test fun allShort(): Unit = check(
-        "<ME,EM,FD,DF,T,H>/dir/file",
+        "<ME,EM,FD,F,DF,T,H>/dir/file",
         "<>/dir/file",
-        setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT
+        setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT,
+        flaky = true
     )
 
     @Test fun allLong(): Unit = check(
-        "<MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH>/dir/file",
+        "<MISSING_EXIST, EXIST_MISSING, FLAKY, FILE_DIR, DIR_FILE, TIMESTAMP, HASH>/dir/file",
         "<>/dir/file",
-        setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT
+        setOf(MISSING_EXIST, EXIST_MISSING, FILE_DIR, DIR_FILE, TIMESTAMP, HASH), STRICT,
+        flaky = true
     )
 
     @Test fun replaces(): Unit = check(
@@ -37,6 +39,7 @@ internal class DiffExceptionRuleParseTest {
         path: String,
         kinds: Set<DiffKind> = setOf(),
         patternType: PatternType = STRICT,
+        flaky: Boolean = false,
         replaces: Map<String, String>? = null
     ) {
         val rule = if (replaces == null) {
@@ -46,8 +49,9 @@ internal class DiffExceptionRuleParseTest {
         }
 
         assertEquals(pattern, rule.pattern, "pattern = $pattern in $rule")
-        assertEquals(kinds, rule.kinds, "kinds = $pattern in $rule")
-        assertEquals(path, rule.path, "path = $pattern in $rule")
-        assertEquals(patternType, rule.patternType, "patternType = $pattern in $rule")
+        assertEquals(kinds, rule.kinds, "kinds = $kinds in $rule")
+        assertEquals(path, rule.path, "path = $path in $rule")
+        assertEquals(patternType, rule.patternType, "patternType = $patternType in $rule")
+        assertEquals(flaky, rule.flaky, "flaky = $flaky in $rule")
     }
 }

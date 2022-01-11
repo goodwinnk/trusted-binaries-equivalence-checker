@@ -7,7 +7,8 @@ class DiffExceptionRule private constructor (
     val pattern: String,
     val kinds: Set<DiffKind>, // Empty set means all kinds
     val path: String,
-    val patternType: PatternType
+    val patternType: PatternType,
+    val flaky: Boolean
 ) {
     companion object {
         enum class PatternType {
@@ -19,19 +20,22 @@ class DiffExceptionRule private constructor (
 
         fun parseExceptionRulePattern(pattern: String, replaces: Map<String, String> = emptyMap()): DiffExceptionRule {
             val kinds: Set<DiffKind>
+            val flaky: Boolean
 
             var pathPattern: String
             if (pattern.startsWith("<")) {
                 pathPattern = pattern.substringAfterLast(">")
-                val kindsStr = pattern.substringAfter("<").substringBeforeLast(">").trim()
-                kinds = if (kindsStr.isEmpty()) {
-                    emptySet()
-                } else {
-                    kindsStr.split(",").map { parseKind(it, pattern) }.toSet()
-                }
+
+                val kindAndFlakyStr = pattern.substringAfter("<").substringBeforeLast(">").trim()
+                val kindAndFlakyParts = kindAndFlakyStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                val kindParts = kindAndFlakyParts.filter { part -> !part.uppercase().let { it == "F" || it == "FLAKY" } }
+
+                flaky = kindParts.size < kindAndFlakyParts.size
+                kinds = kindParts.map { parseKind(it, pattern) }.toSet()
             } else {
-                kinds = emptySet()
                 pathPattern = pattern
+                kinds = emptySet()
+                flaky = false
             }
 
             val isStartWildcard = if (pathPattern.startsWith("**")) {
@@ -69,7 +73,7 @@ class DiffExceptionRule private constructor (
                 else -> STRICT
             }
             
-            return DiffExceptionRule(pattern, kinds, path, patternType)
+            return DiffExceptionRule(pattern, kinds, path, patternType, flaky)
         }
         
         private fun parseKind(kindStr: String, pattern: String): DiffKind {
