@@ -15,10 +15,10 @@ import kotlin.system.exitProcess
 
 class CheckerCommand : CliktCommandWithFile() {
     private val algo: String by option(help = "Hashing algorithm, md5 and sha256 are supported, md5 is default").default("md5")
-    private val exceptions: String by option(
+    private val exceptions: String? by option(
         help = "Comma separated list of paths that are allowed to be different.\n" +
                 "'<>' can be used as root, '/' should be used as path separator.\n" +
-                "Empty by default.").default("")
+                "Empty by default.")
 
     private val replaces: String by option(
         help = "Comma separated List of replaces in exceptions in the format 'value1=replace,value2=replace'. " +
@@ -36,7 +36,7 @@ class CheckerCommand : CliktCommandWithFile() {
     private val right: Path by argument().path(mustExist = true)
 
     override fun run() {
-        val exceptionsList = exceptions.split(",")
+        val exceptionsList = exceptions?.split(",") ?: emptyList()
         val progressListener: (String) -> Unit = if (progress) { message -> println(message) } else { _ -> /* do nothing */ }
 
         try {
