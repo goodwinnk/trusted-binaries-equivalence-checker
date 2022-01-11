@@ -40,12 +40,15 @@ class CheckerCommand : CliktCommandWithFile() {
         val progressListener: (String) -> Unit = if (progress) { message -> println(message) } else { _ -> /* do nothing */ }
 
         try {
-            val checker = Checker(exceptionsList, replaces, hashAlgo = algo, progress = progressListener)
-            checker.check(left, right)
+            val checker = Checker(hashAlgo = algo, progress = progressListener)
+            val reports = checker.check(left, right)
 
-            val reportUnused = if (checker.errors.isEmpty()) checker.unusedExceptions.map { "Unused rule: $it" } else emptyList()
-            val errors = checker.errors + (if (!warnOnUnused) reportUnused else emptyList())
-            val warnings = checker.warnings + (if (warnOnUnused) reportUnused else emptyList())
+            val reporter = Reporter(exceptionsList, replaces)
+            reporter.processReports(reports)
+
+            val reportUnused = if (reporter.errors.isEmpty()) reporter.unusedExceptions.map { "Unused rule: $it" } else emptyList()
+            val errors = reporter.errors + (if (!warnOnUnused) reportUnused else emptyList())
+            val warnings = reporter.warnings + (if (warnOnUnused) reportUnused else emptyList())
 
             if (!this.noWarnings && warnings.isNotEmpty()) {
                 println("Warnings:")

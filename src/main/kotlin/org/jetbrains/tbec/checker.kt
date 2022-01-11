@@ -30,8 +30,6 @@ class TempDir(private val prefix: String) {
 class CheckerException(message: String, cause: Exception? = null): Exception(message, cause)
 
 class Checker(
-    private val exceptionsPatterns: List<String> = listOf("<T>"),
-    private val patternReplacesStr: String = "",
     val hashAlgo: String = "md5",
     val progress: (String) -> Unit = {}
 ) {
@@ -40,45 +38,22 @@ class Checker(
         const val ROOT = "<>"
     }
 
-    private val exceptionRules = run {
-        val replaces = try {
-             patternReplacesStr.parseMap()
-        } catch (ex: ParseMapException) {
-            throw CheckerException("Can't parse replaces", ex)
-        }
-        exceptionsPatterns.map { DiffExceptionRule.parseExceptionRulePattern(it, replaces) }
-    }
-
-    private val _errors: MutableList<String> = mutableListOf()
-    private val _warnings: MutableList<String> = mutableListOf()
-    private val _usedExceptions: MutableSet<String> = mutableSetOf()
+    private val _reports: MutableList<DiffReport> = mutableListOf()
     private var tempDir = TempDir("eq-checker")
 
-    val errors: List<String> get() = _errors
-    val warnings: List<String> get() = _warnings
-    val unusedExceptions: List<String> get() = exceptionsPatterns.filterNot { it in _usedExceptions }
-
-    fun check(left: Path, right: Path) {
+    fun check(left: Path, right: Path): List<DiffReport> {
         try {
-            _errors.clear()
-            _warnings.clear()
-            _usedExceptions.clear()
-
-            Files.createTempDirectory("tmpDirPrefix")
-
+            _reports.clear()
             check(left, right, ROOT)
+            return ArrayList(_reports)
         } finally {
             tempDir.delete()
         }
     }
 
-    private fun findExceptionPattern(kind: DiffKind, path: String): String? {
-        return exceptionRules.find { it.match(kind, path) }?.pattern
-    }
-
-    private fun report(kind: DiffKind, path: String, message: String? = null): Boolean {
+    private fun report(kind: DiffKind, path: String, message: String? = null) {
         if (path == ROOT && kind == TIMESTAMP) {
-            return false
+            return
         }
 
         @Suppress("NAME_SHADOWING") val message = message ?: when (kind) {
@@ -90,19 +65,9 @@ class Checker(
             HASH -> "hashes"
         }
 
-        val full = "$path: $message"
-        val exceptionRulePattern = findExceptionPattern(kind, path)
-
-        return if (exceptionRulePattern == null) {
-            progress("ERROR: $full")
-            _errors.add(full)
-            true
-        } else {
-            progress("WARN: $full")
-            _usedExceptions.add(exceptionRulePattern)
-            _warnings.add(full)
-            false
-        }
+        val diffReport = DiffReport(path, kind, message)
+        _reports.add(diffReport)
+        progress("REPORT: ${diffReport.fullMessage}")
     }
 
     private fun check(left: Path, right: Path, path: String) {
@@ -184,9 +149,7 @@ class Checker(
         val rightHash = right.hash(hashAlgo)
 
         if (leftHash != rightHash) {
-            if (report(HASH, path, "$leftHash != $rightHash")) {
-                return
-            }
+            report(HASH, path, "$leftHash != $rightHash")
 
             if (left.extension in zipExtension) {
                 val fileDirPath = Files.createDirectories(tempDir.path.resolve(escapePath(path)))
