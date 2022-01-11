@@ -26,7 +26,8 @@ open class Reporter(
         .toList()
 
     private fun findExceptionPattern(kind: DiffKind, path: String): String? {
-        return exceptionRules.find { it.match(kind, path) }?.pattern
+        return exceptionRules.find { it.match(kind, path) }?.pattern ?:
+            exceptionRules.find { it.matchChild(kind, path) }?.pattern
     }
 
     private fun processReport(report: DiffReport) {

@@ -99,6 +99,13 @@ class DiffExceptionRule private constructor (
         }
     }
 
+    fun matchChild(kind: DiffKind, path: String): Boolean {
+        if (kind != DiffKind.HASH) return false
+
+        // Don't check rule kinds as any kind can affect parent hash
+        return (patternType == STARTS_WITH || patternType == STRICT) && this.path.startsWith("$path/")
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
